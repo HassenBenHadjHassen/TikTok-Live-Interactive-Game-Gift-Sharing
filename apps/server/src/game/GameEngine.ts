@@ -246,6 +246,9 @@ export class GameEngine {
     const def = findGiftDefinition(gift.giftName);
     if (!def) return;
 
+    // ✅ Broadcast gift event to all browser clients so notifications fire
+    this.eventBus.emit('gift', gift);
+
     // Track attribution & leaderboard stats
     this.attributionTracker.recordGift(
       gift.senderUsername,

@@ -1,0 +1,6 @@
+The architecture is built for:
+- New platforms: Replace TikTokLiveAdapter with Twitch/YouTube adapter behind same LiveEventProvider interface
+- New games: GameEngine can be the base for Flappy Bird, Pong, Racing — the event bus and gift system are game-agnostic
+- New gift effects: Add entries to gift-config/gifts.ts only
+- New map types / boss fights: EntityManager handles arbitrary entity types
+- Persistence: All state interfaces are persistence-ready — just add a PostgreSQL adapter

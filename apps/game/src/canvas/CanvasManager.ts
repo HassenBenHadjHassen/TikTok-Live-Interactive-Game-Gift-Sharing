@@ -32,7 +32,7 @@ export class CanvasManager {
     const boardWidth = gridWidth * cellSize;
     const boardHeight = gridHeight * cellSize;
     const boardX = Math.floor((CANVAS_VIRTUAL_WIDTH - boardWidth) / 2);
-    const boardY = 250; // top HUD margin
+    const boardY = 170; // reduced — slimmer header without stats/danger meter
 
     this.boardBounds = {
       x: boardX,
