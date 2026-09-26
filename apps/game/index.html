@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>🐍 SNAKE VS EVERYONE - TikTok LIVE</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./src/style.css" />
+  </head>
+  <body>
+    <div id="stream-container">
+      <!-- High Performance Canvas Layer -->
+      <canvas id="game-canvas" width="1080" height="1920"></canvas>
+
+      <!-- Vertical HUD Layer -->
+      <div id="hud-overlay">
+        <!-- TOP HEADER -->
+        <header id="top-header">
+          <div class="stream-title-badge">
+            <span class="pulse-indicator"></span>
+            <span class="title-text">SNAKE VS EVERYONE</span>
+            <span id="phase-badge" class="phase-tag playing">PLAYING</span>
+          </div>
+
+          <div class="stats-row">
+            <div class="stat-card">
+              <span class="stat-label">SURVIVAL TIME</span>
+              <span id="timer-val" class="stat-val">00:00</span>
+            </div>
+            <div class="stat-card highlight">
+              <span class="stat-label">SCORE</span>
+              <span id="score-val" class="stat-val">0</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">BEST RECORD</span>
+              <span id="high-score-val" class="stat-val">0</span>
+            </div>
+          </div>
+
+          <!-- DANGER METER -->
+          <div class="danger-container">
+            <div class="danger-header">
+              <span class="danger-label">DANGER LEVEL</span>
+              <span id="danger-pct" class="danger-val">0%</span>
+            </div>
+            <div class="danger-track">
+              <div id="danger-bar" class="danger-fill" style="width: 0%"></div>
+            </div>
+          </div>
+        </header>
+
+        <!-- FLOATING GIFT NOTIFICATION STACK -->
+        <div id="gift-notifications" class="notification-stack"></div>
+
+        <!-- BOTTOM PANEL: LEADERBOARD & KILL ATTRIBUTION -->
+        <footer id="bottom-footer">
+          <div class="footer-card leaderboard-card">
+            <div class="card-header">
+              <span class="card-icon">👑</span>
+              <span class="card-title">TOP SNAKE KILLERS</span>
+            </div>
+            <div id="leaderboard-list" class="leaderboard-rows">
+              <div class="empty-state">No kills yet! Send gifts to eliminate the snake!</div>
+            </div>
+          </div>
+
+          <div class="instructions-ticker">
+            <span>🎁 SEND GIFTS TO KILL THE SNAKE • 🌹 Rose: +Obstacle • ❤️ Heart: +Speed • 🐯 Tiger: Bombs • 🦁 Lion: Hunter • 🌌 Universe: APOCALYPSE</span>
+          </div>
+        </footer>
+
+        <!-- DEATH & RESULTS SCREEN MODAL -->
+        <div id="death-modal" class="modal-overlay hidden">
+          <div class="death-card">
+            <div class="skull-badge">💀</div>
+            <h1 class="death-title">SNAKE DESTROYED</h1>
+            
+            <div class="killer-showcase">
+              <span class="killer-subtitle">FINAL BLOW</span>
+              <div id="death-killer-name" class="killer-name">@username</div>
+              <div id="death-killer-gift" class="killer-weapon">🦁 Unleashed Hunter</div>
+            </div>
+
+            <div class="death-stats-grid">
+              <div class="death-stat">
+                <span class="label">SURVIVED</span>
+                <span id="death-time" class="val">03:42</span>
+              </div>
+              <div class="death-stat">
+                <span class="label">FINAL SCORE</span>
+                <span id="death-score" class="val">4,850</span>
+              </div>
+            </div>
+
+            <div id="death-contributors" class="contributors-row hidden">
+              <span>Key Contributors:</span>
+              <span id="contributors-names" class="names"></span>
+            </div>
+
+            <div class="restart-timer-container">
+              <span>NEW SNAKE DEPLOYING IN</span>
+              <div id="restart-countdown" class="countdown-val">5</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- APOCALYPSE WARNING BANNER -->
+        <div id="apocalypse-banner" class="apocalypse-banner hidden">
+          <div class="warning-flasher">⚠️ APOCALYPSE MODE ACTIVATED ⚠️</div>
+          <div class="sub-warning">EXTREME HAZARDS DEPLOYED BY VIEWERS</div>
+        </div>
+      </div>
+
+      <!-- COLLAPSIBLE DEVELOPER CONTROL PANEL -->
+      <aside id="dev-panel" class="dev-panel collapsed">
+        <button id="dev-toggle-btn" class="dev-toggle">🛠️ DEV SIMULATOR</button>
+        <div class="dev-content">
+          <h3>🎮 Gift Simulator</h3>
+          <p class="dev-hint">Trigger viewer gifts without TikTok connection</p>
+          
+          <div class="dev-input-group">
+            <label for="dev-username">Viewer Username:</label>
+            <input type="text" id="dev-username" value="StreamViewer" />
+          </div>
+
+          <div class="gift-buttons-grid">
+            <button class="gift-btn" data-gift="Rose">🌹 Rose (+Obs)</button>
+            <button class="gift-btn" data-gift="Heart">❤️ Heart (+Speed)</button>
+            <button class="gift-btn" data-gift="Gift">🎁 Gift (-Food)</button>
+            <button class="gift-btn" data-gift="Tiger">🐯 Tiger (+Bombs)</button>
+            <button class="gift-btn" data-gift="Lion">🦁 Lion (+Hunter)</button>
+            <button class="gift-btn apocalypse-btn" data-gift="Universe">🌌 Universe (APOCALYPSE)</button>
+          </div>
+
+          <div class="streak-actions">
+            <h4>💥 Streak & Spam Test</h4>
+            <div class="streak-btn-row">
+              <button id="btn-streak-10" class="btn-action">🌹 10x Roses</button>
+              <button id="btn-spam-50" class="btn-action">🌹 50x Spam Burst</button>
+            </div>
+          </div>
+
+          <div class="sim-actions">
+            <button id="btn-auto-sim" class="btn-toggle">🤖 Start Auto-Sim (4s)</button>
+            <button id="btn-reset-game" class="btn-danger">🔄 Reset Game</button>
+          </div>
+
+          <div class="debug-monitor">
+            <h4>📊 Engine Monitor</h4>
+            <div class="debug-grid">
+              <div>FPS: <span id="dbg-fps">60</span></div>
+              <div>Status: <span id="dbg-status">PLAYING</span></div>
+              <div>Speed: <span id="dbg-speed">1.0x</span></div>
+              <div>Length: <span id="dbg-len">5</span></div>
+              <div>Obstacles: <span id="dbg-obs">0</span></div>
+              <div>Enemies: <span id="dbg-enemies">0</span></div>
+              <div>Hazards: <span id="dbg-hazards">0</span></div>
+              <div>WS: <span id="dbg-ws">CONNECTED</span></div>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <script type="module" src="./src/main.ts"></script>
+  </body>
+</html>
