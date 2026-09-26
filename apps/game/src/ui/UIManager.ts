@@ -171,11 +171,33 @@ export class UIManager {
 
   private setupDevPanel(): void {
     const devPanel = document.getElementById('dev-panel');
-    const toggleBtn = document.getElementById('dev-toggle-btn');
+    const closeBtn = document.getElementById('dev-close-btn');
     const usernameInput = document.getElementById('dev-username') as HTMLInputElement;
+    const titleBadge = document.querySelector('.stream-title-badge');
 
-    toggleBtn?.addEventListener('click', () => {
-      devPanel?.classList.toggle('collapsed');
+    // Close button inside panel
+    closeBtn?.addEventListener('click', () => {
+      devPanel?.classList.add('collapsed');
+    });
+
+    // Clicking title badge toggles dev panel
+    if (titleBadge) {
+      (titleBadge as HTMLElement).style.pointerEvents = 'auto';
+      (titleBadge as HTMLElement).style.cursor = 'pointer';
+      titleBadge.setAttribute('title', "Click or press 'D' to toggle Dev Simulator");
+      titleBadge.addEventListener('click', () => {
+        devPanel?.classList.toggle('collapsed');
+      });
+    }
+
+    // Keyboard shortcut: Press 'D', 'F2', or '~' to toggle dev panel
+    window.addEventListener('keydown', (e) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+      if (e.key === 'd' || e.key === 'D' || e.key === 'F2' || e.key === '`') {
+        devPanel?.classList.toggle('collapsed');
+      }
     });
 
     // Individual gift buttons

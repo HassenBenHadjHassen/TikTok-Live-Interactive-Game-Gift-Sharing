@@ -116,12 +116,14 @@
         </div>
       </div>
 
-      <!-- COLLAPSIBLE DEVELOPER CONTROL PANEL -->
+      <!-- COLLAPSIBLE DEVELOPER CONTROL PANEL (Press 'D' or click Title to toggle) -->
       <aside id="dev-panel" class="dev-panel collapsed">
-        <button id="dev-toggle-btn" class="dev-toggle">🛠️ DEV SIMULATOR</button>
         <div class="dev-content">
-          <h3>🎮 Gift Simulator</h3>
-          <p class="dev-hint">Trigger viewer gifts without TikTok connection</p>
+          <div class="dev-header">
+            <h3>🎮 Gift Simulator</h3>
+            <button id="dev-close-btn" class="dev-close-btn" title="Close Simulator (Press 'D')">✕</button>
+          </div>
+          <p class="dev-hint">Trigger viewer gifts without TikTok connection (Press 'D' to toggle)</p>
           
           <div class="dev-input-group">
             <label for="dev-username">Viewer Username:</label>
