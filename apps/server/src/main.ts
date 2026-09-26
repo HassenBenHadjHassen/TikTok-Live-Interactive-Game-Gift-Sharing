@@ -73,6 +73,7 @@ async function bootstrap() {
     console.log(`📡 HTTP Server: http://${config.host}:${config.port}`);
     console.log(`🔌 WebSocket:   ws://${config.host}:${config.port}/ws`);
     console.log(`🎮 Provider:    ${config.tiktokProvider.toUpperCase()}`);
+    console.log(`⏱️ Tick Rate:   ${config.tickRate} ticks/sec (~${Math.round(1000 / config.tickRate)}ms per step)`);
     console.log(`====================================================`);
   });
 

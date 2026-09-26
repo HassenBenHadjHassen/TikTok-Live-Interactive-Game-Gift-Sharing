@@ -4,7 +4,7 @@
   "private": true,
   "main": "dist/main.js",
   "scripts": {
-    "dev": "tsx watch src/main.ts",
+    "dev": "tsx watch --include \"../../packages/**\" src/main.ts",
     "build": "tsc",
     "start": "node dist/main.js"
   },

@@ -14,7 +14,7 @@ export const DEFAULT_AI_CONFIG: SnakeAIConfig = {
 export const DEFAULT_GAME_CONFIG: GameConfig = {
   gridWidth: 27,
   gridHeight: 36,
-  baseTickRate: 10, // 10 ticks per second initially
+  baseTickRate: 6, // 6 tick per second — comfortable viewing speed for TikTok LIVE
   maxSpeedMultiplier: 2.5,
   initialSnakeLength: 5,
   autoRestartDelayMs: 6000,

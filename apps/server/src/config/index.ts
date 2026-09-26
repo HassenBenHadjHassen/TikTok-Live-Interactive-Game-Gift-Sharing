@@ -1,5 +1,6 @@
 import dotenv from 'dotenv';
 import path from 'path';
+import { DEFAULT_GAME_CONFIG } from '@snake-live/shared';
 
 dotenv.config({ path: path.resolve(process.cwd(), '../../.env') });
 dotenv.config();
@@ -22,10 +23,10 @@ export const config: ServerConfig = {
   port: parseInt(process.env.PORT || '3001', 10),
   host: process.env.HOST || '0.0.0.0',
   nodeEnv: process.env.NODE_ENV || 'development',
-  tickRate: parseInt(process.env.TICK_RATE || '12', 10),
-  gridWidth: parseInt(process.env.GRID_WIDTH || '27', 10),
-  gridHeight: parseInt(process.env.GRID_HEIGHT || '36', 10),
-  autoRestartDelayMs: parseInt(process.env.AUTO_RESTART_DELAY_MS || '6000', 10),
+  tickRate: process.env.TICK_RATE ? parseFloat(process.env.TICK_RATE) : DEFAULT_GAME_CONFIG.baseTickRate,
+  gridWidth: parseInt(process.env.GRID_WIDTH || String(DEFAULT_GAME_CONFIG.gridWidth), 10),
+  gridHeight: parseInt(process.env.GRID_HEIGHT || String(DEFAULT_GAME_CONFIG.gridHeight), 10),
+  autoRestartDelayMs: parseInt(process.env.AUTO_RESTART_DELAY_MS || String(DEFAULT_GAME_CONFIG.autoRestartDelayMs), 10),
   tiktokProvider: (process.env.TIKTOK_PROVIDER as 'mock' | 'tiktok') || 'mock',
   tiktokUsername: process.env.TIKTOK_USERNAME || '',
   wsHeartbeatIntervalMs: parseInt(process.env.WS_HEARTBEAT_INTERVAL_MS || '30000', 10),
