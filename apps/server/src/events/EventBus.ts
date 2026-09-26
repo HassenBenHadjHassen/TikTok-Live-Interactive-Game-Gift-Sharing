@@ -1,8 +1,20 @@
 import { EventEmitter } from 'events';
-import { GiftEvent, EffectEvent, GameState, DeathInfo, LeaderboardEntry } from '@snake-live/shared';
+import {
+  GiftEvent,
+  EffectEvent,
+  GameState,
+  DeathInfo,
+  LeaderboardEntry,
+  LikeEvent,
+  FollowEvent,
+  ShareEvent,
+} from '@snake-live/shared';
 
 export interface EventBusMap {
   gift: (event: GiftEvent) => void;
+  like: (event: LikeEvent) => void;
+  follow: (event: FollowEvent) => void;
+  share: (event: ShareEvent) => void;
   effect: (event: EffectEvent) => void;
   death: (info: DeathInfo) => void;
   stateChanged: (state: GameState) => void;

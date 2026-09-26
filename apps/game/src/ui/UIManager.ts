@@ -292,5 +292,64 @@ export class UIManager {
         autoSimBtn.textContent = this.autoSimActive ? '⏹️ Stop Auto-Sim' : '🤖 Auto-Sim (4s)';
       }
     });
+
+    // TikTok LIVE Streamer Connect
+    const ttConnectBtn = document.getElementById('btn-tiktok-connect');
+    const ttInput = document.getElementById('tiktok-target-user') as HTMLInputElement;
+    const ttStatus = document.getElementById('tiktok-status-msg');
+
+    const updateTtStatus = () => {
+      fetch('http://localhost:3001/api/tiktok/status')
+        .then((r) => r.json())
+        .then((data) => {
+          if (!ttStatus) return;
+          if (data.connected && data.username) {
+            ttStatus.textContent = `🟢 LIVE: @${data.username} (Room: ${data.roomId || 'Active'})`;
+            ttStatus.style.color = '#00ff88';
+            if (ttInput && !ttInput.value) ttInput.value = `@${data.username}`;
+          } else if (data.username) {
+            ttStatus.textContent = `🟡 Connecting to @${data.username}...`;
+            ttStatus.style.color = '#ffd000';
+          } else {
+            ttStatus.textContent = `⚪ Provider: ${data.provider.toUpperCase()} (Not connected to LIVE)`;
+            ttStatus.style.color = '#8899a6';
+          }
+        })
+        .catch(() => {});
+    };
+
+    updateTtStatus();
+
+    ttConnectBtn?.addEventListener('click', async () => {
+      const username = ttInput?.value.trim();
+      if (!username) return;
+      if (ttStatus) {
+        ttStatus.textContent = `⏳ Connecting to TikTok LIVE @${username}...`;
+        ttStatus.style.color = '#ffd000';
+      }
+      try {
+        const res = await fetch('http://localhost:3001/api/tiktok/connect', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username }),
+        });
+        const json = await res.json();
+        if (ttStatus) {
+          if (json.success) {
+            ttStatus.textContent = `🟢 Connected to @${username}!`;
+            ttStatus.style.color = '#00ff88';
+          } else {
+            ttStatus.textContent = `⚠️ Connecting to @${username}... (May take a few moments)`;
+            ttStatus.style.color = '#ffaa00';
+          }
+        }
+        setTimeout(updateTtStatus, 3000);
+      } catch (err: any) {
+        if (ttStatus) {
+          ttStatus.textContent = `❌ Error: ${err.message}`;
+          ttStatus.style.color = '#ff1a40';
+        }
+      }
+    });
   }
 }

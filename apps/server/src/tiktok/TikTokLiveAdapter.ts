@@ -3,6 +3,7 @@ import { GiftEvent, LikeEvent, FollowEvent, ShareEvent } from '@snake-live/share
 
 export interface TikTokAdapterConfig {
   username: string;
+  signApiKey?: string;
   clientParams?: Record<string, any>;
   requestHeaders?: Record<string, any>;
 }
@@ -12,76 +13,144 @@ export class TikTokLiveAdapter implements LiveEventProvider {
   private likeHandlers: ((event: LikeEvent) => void)[] = [];
   private followHandlers: ((event: FollowEvent) => void)[] = [];
   private shareHandlers: ((event: ShareEvent) => void)[] = [];
+  private chatHandlers: ((data: { username: string; comment: string }) => void)[] = [];
+
   private tiktokConnection: any = null;
   private connected: boolean = false;
+  private currentUsername: string = '';
+  private currentRoomId: string | null = null;
+  private roomInfo: any = null;
+  private streakMap: Map<string, number> = new Map();
 
-  constructor(private config: TikTokAdapterConfig) {}
+  constructor(private config: TikTokAdapterConfig) {
+    this.currentUsername = this.cleanUsername(config.username);
+  }
+
+  /**
+   * Cleans input username (handles @, URLs, trailing slashes)
+   */
+  private cleanUsername(raw: string): string {
+    if (!raw) return '';
+    let name = raw.trim();
+    if (name.includes('tiktok.com/@')) {
+      const match = name.match(/@([^/?#]+)/);
+      if (match) name = match[1];
+    }
+    return name.replace(/^@/, '').trim();
+  }
 
   async connect(): Promise<void> {
-    if (!this.config.username) {
-      console.warn('[TikTokLiveAdapter] No username specified. Operating in disconnected state.');
+    if (!this.currentUsername) {
+      console.warn('[TikTokLiveAdapter] No TikTok username specified. Running in disconnected state.');
       return;
     }
 
     try {
-      // Dynamic import of tiktok-live-connector to ensure decoupled installation
-      const tiktokModule = await import('tiktok-live-connector' as any);
-      const WebcastPushConnection = tiktokModule.WebcastPushConnection;
+      console.log(`[TikTokLiveAdapter] Connecting to TikTok LIVE stream: @${this.currentUsername}...`);
 
-      this.tiktokConnection = new WebcastPushConnection(this.config.username, {
+      // Dynamic import of modern tiktok-live-connector
+      const { TikTokLiveConnection, WebcastEvent, ControlEvent } = await import('tiktok-live-connector');
+
+      const options: any = {
         processInitialData: false,
         enableExtendedGiftInfo: true,
+        webClientOptions: {
+          timeout: { request: 12000 },
+        },
         ...this.config.clientParams,
+      };
+
+      if (this.config.signApiKey) {
+        options.signApiKey = this.config.signApiKey;
+      }
+
+      this.tiktokConnection = new TikTokLiveConnection(this.currentUsername, options);
+
+      // 1. Connection Lifecycle Events
+      this.tiktokConnection.on(ControlEvent.CONNECTED, (state: any) => {
+        this.connected = true;
+        this.currentRoomId = state.roomId || null;
+        this.roomInfo = state.roomInfo || null;
+        console.log(`[TikTokLiveAdapter] ✅ Connected to TikTok LIVE room: @${this.currentUsername} (Room ID: ${state.roomId})`);
       });
 
-      this.tiktokConnection.on('gift', (data: any) => {
+      this.tiktokConnection.on(ControlEvent.DISCONNECTED, (data: any) => {
+        this.connected = false;
+        console.warn(`[TikTokLiveAdapter] ⚠️ Disconnected from TikTok LIVE room (@${this.currentUsername})`, data?.reason || '');
+      });
+
+      this.tiktokConnection.on(ControlEvent.ERROR, ({ info, exception }: any) => {
+        console.error(`[TikTokLiveAdapter] Error (${info}):`, exception?.message || exception);
+      });
+
+      // 2. Stream Gifts with Streak / Incremental Delta Processing
+      this.tiktokConnection.on(WebcastEvent.GIFT, (data: any) => {
         this.handleRawGift(data);
       });
 
-      this.tiktokConnection.on('like', (data: any) => {
+      // 3. Viewer Likes
+      this.tiktokConnection.on(WebcastEvent.LIKE, (data: any) => {
         this.handleRawLike(data);
       });
 
-      this.tiktokConnection.on('follow', (data: any) => {
+      // 4. Viewer Follows
+      this.tiktokConnection.on(WebcastEvent.FOLLOW, (data: any) => {
         this.handleRawFollow(data);
       });
 
-      this.tiktokConnection.on('share', (data: any) => {
+      // 5. Viewer Shares
+      this.tiktokConnection.on(WebcastEvent.SHARE, (data: any) => {
         this.handleRawShare(data);
       });
 
-      this.tiktokConnection.on('connected', () => {
-        this.connected = true;
-        console.log(`[TikTokLiveAdapter] Connected to TikTok LIVE room: @${this.config.username}`);
+      // 6. Viewer Comments (Chat)
+      this.tiktokConnection.on(WebcastEvent.CHAT, (data: any) => {
+        const username = data.user?.uniqueId || data.user?.nickname || 'Viewer';
+        const comment = data.comment || '';
+        for (const handler of this.chatHandlers) {
+          handler({ username, comment });
+        }
       });
 
-      this.tiktokConnection.on('disconnected', () => {
-        this.connected = false;
-        console.warn(`[TikTokLiveAdapter] Disconnected from TikTok LIVE room`);
-      });
-
-      this.tiktokConnection.on('error', (err: any) => {
-        console.error(`[TikTokLiveAdapter] TikTok Connection error:`, err?.message || err);
+      // 7. Room Stats & Viewers
+      this.tiktokConnection.on(WebcastEvent.ROOM_USER, (data: any) => {
+        if (data.viewerCount !== undefined) {
+          // Track live viewer count if needed
+        }
       });
 
       await this.tiktokConnection.connect();
     } catch (err: any) {
-      console.error(
-        `[TikTokLiveAdapter] Could not connect to TikTok LIVE: ${err.message}. If tiktok-live-connector is not installed, use TIKTOK_PROVIDER=mock.`
-      );
       this.connected = false;
+      console.error(
+        `[TikTokLiveAdapter] Could not connect to TikTok LIVE for @${this.currentUsername}: ${err?.message || err}. (Streamer may be offline).`
+      );
     }
   }
 
   async disconnect(): Promise<void> {
-    if (this.tiktokConnection && this.connected) {
+    if (this.tiktokConnection) {
       try {
         await this.tiktokConnection.disconnect();
       } catch (err) {
         console.error('[TikTokLiveAdapter] Error while disconnecting:', err);
       }
+      this.tiktokConnection = null;
     }
     this.connected = false;
+    this.streakMap.clear();
+  }
+
+  /**
+   * Switch live stream connection to a new streamer username at runtime
+   */
+  async switchUser(newUsername: string): Promise<boolean> {
+    const cleaned = this.cleanUsername(newUsername);
+    if (!cleaned) return false;
+    await this.disconnect();
+    this.currentUsername = cleaned;
+    await this.connect();
+    return this.connected;
   }
 
   onGift(handler: (event: GiftEvent) => void): void {
@@ -100,27 +169,65 @@ export class TikTokLiveAdapter implements LiveEventProvider {
     this.shareHandlers.push(handler);
   }
 
+  onChat(handler: (data: { username: string; comment: string }) => void): void {
+    this.chatHandlers.push(handler);
+  }
+
   isConnected(): boolean {
     return this.connected;
   }
 
+  getRoomId(): string | null {
+    return this.currentRoomId;
+  }
+
+  getRoomInfo(): any {
+    return this.roomInfo;
+  }
+
+  getUsername(): string {
+    return this.currentUsername;
+  }
+
   /**
-   * Normalize and sanitize raw TikTok gift payload
+   * Normalize and sanitize raw TikTok gift payload with streak combo delta tracking.
+   * This ensures viewers get immediate validation on EVERY screen tap during a combo.
    */
   private handleRawGift(data: any): void {
     if (!data) return;
 
-    // Sanitize & validate fields to adhere to Security requirements (Section 34)
-    const rawGiftName = String(data.giftName || data.gift?.name || 'Gift').trim();
+    const giftDetails = data.giftDetails || data.extendedGiftInfo || {};
+    const rawGiftName = String(
+      giftDetails.giftName || data.giftName || data.gift?.name || 'Gift'
+    ).trim();
+
     const rawUsername = String(
-      data.uniqueId || data.nickname || data.user?.uniqueId || 'Anonymous'
+      data.user?.uniqueId || data.user?.nickname || data.uniqueId || data.nickname || 'Viewer'
     )
       .replace(/[^a-zA-Z0-9_.-]/g, '')
       .substring(0, 32);
 
-    const senderId = String(data.userId || data.user?.userId || rawUsername);
-    const repeatCount = Math.max(1, Math.min(1000, Number(data.repeatCount || 1)));
+    const senderId = String(data.user?.userId || data.userId || rawUsername);
+    const senderAvatar = data.user?.profilePictureUrl || data.profilePictureUrl || undefined;
+    const diamondCount = Number(giftDetails.diamondCount || data.diamondCount || 0);
     const giftId = String(data.giftId || rawGiftName);
+    const repeatCount = Math.max(1, Number(data.repeatCount || 1));
+    const giftType = Number(giftDetails.giftType ?? data.giftType ?? 0);
+    const repeatEnd = Boolean(data.repeatEnd);
+
+    // Calculate incremental delta during combo streaks (giftType === 1)
+    let countToProcess = repeatCount;
+    if (giftType === 1) {
+      const streakKey = `${senderId}_${giftId}_${data.groupId || ''}`;
+      const prevCount = this.streakMap.get(streakKey) || 0;
+      countToProcess = Math.max(1, repeatCount - prevCount);
+
+      if (repeatEnd) {
+        this.streakMap.delete(streakKey);
+      } else {
+        this.streakMap.set(streakKey, repeatCount);
+      }
+    }
 
     const normalizedGift: GiftEvent = {
       id: `tt_${data.msgId || Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
@@ -128,9 +235,9 @@ export class TikTokLiveAdapter implements LiveEventProvider {
       giftName: rawGiftName,
       senderId,
       senderUsername: rawUsername || 'Viewer',
-      senderAvatar: data.profilePictureUrl || undefined,
-      repeatCount,
-      diamondCount: Number(data.diamondCount || 0),
+      senderAvatar,
+      repeatCount: countToProcess,
+      diamondCount,
       timestamp: Date.now(),
     };
 
@@ -141,14 +248,18 @@ export class TikTokLiveAdapter implements LiveEventProvider {
 
   private handleRawLike(data: any): void {
     if (!data) return;
-    const rawUsername = String(data.uniqueId || 'Viewer').substring(0, 32);
+    const rawUsername = String(
+      data.user?.uniqueId || data.user?.nickname || data.uniqueId || 'Viewer'
+    ).substring(0, 32);
+
     const likeEvent: LikeEvent = {
-      senderId: String(data.userId || rawUsername),
+      senderId: String(data.user?.userId || data.userId || rawUsername),
       senderUsername: rawUsername,
       likeCount: Number(data.likeCount || 1),
-      totalLikes: Number(data.totalLikes || 0),
+      totalLikes: Number(data.totalLikes || data.totalLikeCount || 0),
       timestamp: Date.now(),
     };
+
     for (const handler of this.likeHandlers) {
       handler(likeEvent);
     }
@@ -156,12 +267,16 @@ export class TikTokLiveAdapter implements LiveEventProvider {
 
   private handleRawFollow(data: any): void {
     if (!data) return;
-    const rawUsername = String(data.uniqueId || 'Viewer').substring(0, 32);
+    const rawUsername = String(
+      data.user?.uniqueId || data.user?.nickname || data.uniqueId || 'Viewer'
+    ).substring(0, 32);
+
     const followEvent: FollowEvent = {
-      senderId: String(data.userId || rawUsername),
+      senderId: String(data.user?.userId || data.userId || rawUsername),
       senderUsername: rawUsername,
       timestamp: Date.now(),
     };
+
     for (const handler of this.followHandlers) {
       handler(followEvent);
     }
@@ -169,12 +284,16 @@ export class TikTokLiveAdapter implements LiveEventProvider {
 
   private handleRawShare(data: any): void {
     if (!data) return;
-    const rawUsername = String(data.uniqueId || 'Viewer').substring(0, 32);
+    const rawUsername = String(
+      data.user?.uniqueId || data.user?.nickname || data.uniqueId || 'Viewer'
+    ).substring(0, 32);
+
     const shareEvent: ShareEvent = {
-      senderId: String(data.userId || rawUsername),
+      senderId: String(data.user?.userId || data.userId || rawUsername),
       senderUsername: rawUsername,
       timestamp: Date.now(),
     };
+
     for (const handler of this.shareHandlers) {
       handler(shareEvent);
     }

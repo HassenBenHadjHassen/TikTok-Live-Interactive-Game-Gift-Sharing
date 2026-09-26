@@ -243,7 +243,7 @@ export class GameEngine {
    * Apply a normalized gift to the game engine
    */
   applyGift(gift: GiftEvent): void {
-    const def = findGiftDefinition(gift.giftName);
+    const def = findGiftDefinition(gift.giftName, gift.diamondCount);
     if (!def) return;
 
     // ✅ Broadcast gift event to all browser clients so notifications fire

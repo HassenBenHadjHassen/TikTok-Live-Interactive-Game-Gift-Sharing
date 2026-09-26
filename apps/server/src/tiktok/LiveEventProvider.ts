@@ -8,4 +8,6 @@ export interface LiveEventProvider {
   onFollow?(handler: (event: FollowEvent) => void): void;
   onShare?(handler: (event: ShareEvent) => void): void;
   isConnected(): boolean;
+  getRoomId?(): string | null;
+  switchUser?(username: string): Promise<boolean>;
 }

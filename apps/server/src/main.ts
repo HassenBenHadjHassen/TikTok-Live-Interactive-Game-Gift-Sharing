@@ -34,7 +34,10 @@ async function bootstrap() {
   let liveProvider: LiveEventProvider;
   if (config.tiktokProvider === 'tiktok' && config.tiktokUsername) {
     console.log(`[Bootstrap] Initializing TikTok LIVE Adapter for @${config.tiktokUsername}`);
-    liveProvider = new TikTokLiveAdapter({ username: config.tiktokUsername });
+    liveProvider = new TikTokLiveAdapter({
+      username: config.tiktokUsername,
+      signApiKey: config.tiktokSignApiKey || undefined,
+    });
   } else {
     console.log('[Bootstrap] Initializing Mock LIVE Provider for local simulation');
     liveProvider = new MockLiveProvider();
@@ -44,6 +47,24 @@ async function bootstrap() {
   liveProvider.onGift((gift) => {
     eventQueue.enqueue(gift);
   });
+
+  if (liveProvider.onLike) {
+    liveProvider.onLike((like) => {
+      eventBus.emit('like', like);
+    });
+  }
+
+  if (liveProvider.onFollow) {
+    liveProvider.onFollow((follow) => {
+      eventBus.emit('follow', follow);
+    });
+  }
+
+  if (liveProvider.onShare) {
+    liveProvider.onShare((share) => {
+      eventBus.emit('share', share);
+    });
+  }
 
   // 4. WebSocket Server
   const wsServer = new GameWebSocketServer(

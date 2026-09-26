@@ -148,13 +148,25 @@ export const GIFT_DEFINITIONS: Record<string, GiftDefinition> = {
   },
 };
 
-export function findGiftDefinition(nameOrId: string): GiftDefinition | undefined {
-  if (!nameOrId) return undefined;
-  if (GIFT_DEFINITIONS[nameOrId]) return GIFT_DEFINITIONS[nameOrId];
-  const lower = nameOrId.toLowerCase().trim();
-  for (const def of Object.values(GIFT_DEFINITIONS)) {
-    if (def.name.toLowerCase() === lower || def.id === nameOrId) return def;
-    if (def.aliases.some((a) => a.toLowerCase() === lower)) return def;
+export function findGiftDefinition(nameOrId: string, diamondCount?: number): GiftDefinition | undefined {
+  if (!nameOrId && (diamondCount === undefined || diamondCount <= 0)) return undefined;
+  if (nameOrId && GIFT_DEFINITIONS[nameOrId]) return GIFT_DEFINITIONS[nameOrId];
+  if (nameOrId) {
+    const lower = nameOrId.toLowerCase().trim();
+    for (const def of Object.values(GIFT_DEFINITIONS)) {
+      if (def.name.toLowerCase() === lower || def.id === nameOrId) return def;
+      if (def.aliases.some((a) => a.toLowerCase() === lower)) return def;
+    }
   }
+
+  // Graceful fallback for any unknown TikTok LIVE gifts if diamondCount is provided
+  if (diamondCount !== undefined && diamondCount > 0) {
+    if (diamondCount >= 1000) return GIFT_DEFINITIONS.Universe;
+    if (diamondCount >= 300) return GIFT_DEFINITIONS.Lion;
+    if (diamondCount >= 100) return GIFT_DEFINITIONS.Tiger;
+    if (diamondCount >= 10) return GIFT_DEFINITIONS.Heart;
+    return GIFT_DEFINITIONS.Rose;
+  }
+
   return undefined;
 }

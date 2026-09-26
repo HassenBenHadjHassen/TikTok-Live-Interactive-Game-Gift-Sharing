@@ -3,6 +3,7 @@ import { GameEngine } from '../game/GameEngine';
 import { EventQueue } from '../events/EventQueue';
 import { LiveEventProvider } from '../tiktok/LiveEventProvider';
 import { MockLiveProvider } from '../tiktok/MockLiveProvider';
+import { TikTokLiveAdapter } from '../tiktok/TikTokLiveAdapter';
 import { GiftEvent } from '@snake-live/shared';
 
 export function createDevRouter(
@@ -90,6 +91,40 @@ export function createDevRouter(
   router.get('/leaderboard', (_req: Request, res: Response) => {
     const leaderboard = gameEngine.getLeaderboardManager().getTopKillers(10);
     return res.json({ leaderboard });
+  });
+
+  /**
+   * TikTok Live status and connection management
+   */
+  router.get('/tiktok/status', (_req: Request, res: Response) => {
+    const isTikTok = liveProvider instanceof TikTokLiveAdapter;
+    return res.json({
+      provider: isTikTok ? 'tiktok' : 'mock',
+      connected: liveProvider.isConnected(),
+      roomId: liveProvider.getRoomId ? liveProvider.getRoomId() : null,
+      username: isTikTok ? (liveProvider as TikTokLiveAdapter).getUsername() : null,
+    });
+  });
+
+  router.post('/tiktok/connect', async (req: Request, res: Response) => {
+    const { username } = req.body;
+    if (!username) {
+      return res.status(400).json({ error: 'Username is required' });
+    }
+    if (liveProvider.switchUser) {
+      const ok = await liveProvider.switchUser(username);
+      return res.json({
+        success: ok,
+        username,
+        message: ok ? `Connected to TikTok LIVE @${username}` : `Attempted connection to @${username}`,
+      });
+    }
+    return res.status(400).json({ error: 'Active provider does not support dynamic connection' });
+  });
+
+  router.post('/tiktok/disconnect', async (_req: Request, res: Response) => {
+    await liveProvider.disconnect();
+    return res.json({ success: true, message: 'Disconnected from live provider' });
   });
 
   return router;

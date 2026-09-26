@@ -2,6 +2,7 @@
   "name": "@snake-live/server",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "main": "dist/main.js",
   "scripts": {
     "dev": "tsx watch --include \"../../packages/**\" src/main.ts",
@@ -14,6 +15,7 @@
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "tiktok-live-connector": "^2.5.0",
     "ws": "^8.18.0"
   },
   "devDependencies": {

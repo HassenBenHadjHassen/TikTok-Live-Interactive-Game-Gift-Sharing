@@ -15,6 +15,7 @@ export interface ServerConfig {
   autoRestartDelayMs: number;
   tiktokProvider: 'mock' | 'tiktok';
   tiktokUsername: string;
+  tiktokSignApiKey: string;
   wsHeartbeatIntervalMs: number;
   wsSnapshotIntervalMs: number;
 }
@@ -29,6 +30,7 @@ export const config: ServerConfig = {
   autoRestartDelayMs: parseInt(process.env.AUTO_RESTART_DELAY_MS || String(DEFAULT_GAME_CONFIG.autoRestartDelayMs), 10),
   tiktokProvider: (process.env.TIKTOK_PROVIDER as 'mock' | 'tiktok') || 'mock',
   tiktokUsername: process.env.TIKTOK_USERNAME || '',
+  tiktokSignApiKey: process.env.TIKTOK_SIGN_API_KEY || process.env.SIGN_API_KEY || '',
   wsHeartbeatIntervalMs: parseInt(process.env.WS_HEARTBEAT_INTERVAL_MS || '30000', 10),
   wsSnapshotIntervalMs: parseInt(process.env.WS_SNAPSHOT_INTERVAL_MS || '50', 10),
 };
